@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+nosetests.xml
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node / JS
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Local databases & uploads
+*.db
+backend/*.db
+storage/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
