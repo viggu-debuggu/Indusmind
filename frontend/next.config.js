@@ -1,6 +1,9 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  outputFileTracingRoot: path.join(__dirname),
   eslint: {
     // Prevent build failures due to eslint warnings
     ignoreDuringBuilds: true,
@@ -16,3 +19,4 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+
