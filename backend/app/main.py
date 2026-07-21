@@ -141,6 +141,11 @@ app.include_router(learning_router, prefix=settings.API_PREFIX)
 app.include_router(executive_router, prefix=settings.API_PREFIX)
 app.include_router(enterprise_router, prefix=settings.API_PREFIX)
 
+from app.api.endpoints.ai import get_knowledge_graph
+from app.ai.schemas import GraphResponse
+app.get(f"{settings.API_PREFIX}/graph", response_model=GraphResponse, tags=["AI Copilot & Search"])(get_knowledge_graph)
+
+
 
 
 @app.get("/")

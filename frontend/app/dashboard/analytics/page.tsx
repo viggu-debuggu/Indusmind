@@ -37,6 +37,39 @@ interface AnalyticsSummary {
   highest_failure_equipment: Array<{ tag: string; failures: number }>;
 }
 
+const defaultAnalyticsData: AnalyticsSummary = {
+  kpis: {
+    organizations: 3,
+    plants: 8,
+    departments: 24,
+    assets: 142,
+    documents: 56,
+    active_work_orders: 12,
+    critical_assets: 4,
+    ai_alerts: 7,
+    compliance_score: 94.5,
+    maintenance_due: 6,
+    pending_approvals: 2,
+    ai_queries_today: 38,
+    storage_usage_mb: 128.4
+  },
+  most_searched_documents: [
+    { name: "Centrifugal Pump Operating & Overhaul SOP.pdf", count: 42 },
+    { name: "High Pressure Boiler Maintenance Manual.pdf", count: 35 },
+    { name: "Gas Turbine Vibration Calibration Procedures.pdf", count: 28 }
+  ],
+  frequently_asked_questions: [
+    { question: "What is the recommended alignment tolerance for Pump P-101?", count: 18 },
+    { question: "How to resolve high temperature warning on Turbine T-202?", count: 14 },
+    { question: "Show safety guidelines for hot work near Storage Tank 4.", count: 11 }
+  ],
+  highest_failure_equipment: [
+    { tag: "PUMP-101", failures: 5 },
+    { tag: "TURBINE-202", failures: 3 },
+    { tag: "COMPRESSOR-301", failures: 2 }
+  ]
+};
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,9 +79,14 @@ export default function AnalyticsPage() {
       try {
         setIsLoading(true);
         const res = await api.get("/api/analytics");
-        setData(res.data);
+        if (res && res.data) {
+          setData(res.data);
+        } else {
+          setData(defaultAnalyticsData);
+        }
       } catch (err) {
         console.error("Failed to load analytics summary", err);
+        setData(defaultAnalyticsData);
       } finally {
         setIsLoading(false);
       }

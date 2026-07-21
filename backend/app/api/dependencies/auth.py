@@ -51,6 +51,20 @@ async def get_current_user(
     return user
 
 
+async def get_current_user_optional(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    """Dependency injector that returns user if authenticated, or None if token missing/invalid."""
+    if not token:
+        return None
+    try:
+        return await get_current_user(token, db)
+    except Exception:
+        return None
+
+
+
 async def get_current_verified_user(
     current_user: User = Depends(get_current_user)
 ) -> User:

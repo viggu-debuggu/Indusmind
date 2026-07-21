@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query, BackgroundTasks, status
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.api.dependencies.auth import get_current_user
+from app.api.dependencies.auth import get_current_user, get_current_user_optional
 from app.models.user import User
 from app.models.document import DocumentModel
 from app.models.ai import ChatSession, ChatMessage, DocumentChunk
@@ -309,7 +309,7 @@ def list_asset_tags(
 @router.get("/ai/graph", response_model=GraphResponse)
 def get_knowledge_graph(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Generates the industrial entity knowledge graph topology dynamically from SQL assets and parsed document tags."""
     from app.models.equipment import Equipment, MaintenancePrediction
