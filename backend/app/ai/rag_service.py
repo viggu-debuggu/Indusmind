@@ -52,6 +52,40 @@ class RAGService:
         return max(0, min(100, confidence))
 
     @classmethod
+    def classify_intent(cls, question: str) -> str:
+        """
+        Classifies user query intent into categories:
+        {executive, learning, twin, discovery, decision, general_rag}
+        """
+        import os
+        provider = os.getenv("LLM_PROVIDER", "mock").lower().strip()
+        if provider == "mock":
+            return "general_rag"
+            
+        system_prompt = (
+            "You are an intent classifier for an industrial plant safety & engineering assistant.\n"
+            "Map the user question to exactly one of the following lowercase tags:\n"
+            "- executive (questions about overall plant health metrics, dashboard, executive briefing/attention, financial impact or risk, highest ROI, executive summary reports)\n"
+            "- learning (questions about continuous learning, frequently rejected updates, QA evaluation ratings, satisfaction levels, engineer corrections, model training evolution)\n"
+            "- twin (questions asking for a digital twin, side-by-side asset comparison, operational history/timeline of a specific machinery asset like PUMP-P102, knowledge score diagnostics)\n"
+            "- discovery (questions about hidden risks, data/SOP checklist gaps, repeated/recurring failures, optimization opportunities, correlation patterns)\n"
+            "- decision (questions about what to do next, maintenance queue priority, highest business or failure risk, saves the most downtime, why is asset high-risk)\n"
+            "- general_rag (general engineering questions about startup steps, temperature/pressure ratings, calibration procedures, manual instructions, troubleshooting guidelines)\n"
+            "Response MUST only be the single tag word (no punctuation, no markdown, just the word)."
+        )
+        prompt = f"User Question: '{question}'"
+        
+        try:
+            res = LLMService.generate_response(prompt=prompt, system_prompt=system_prompt)
+            clean_res = res.strip().lower().replace("`", "").replace("'", "").replace('"', "")
+            if clean_res in ["executive", "learning", "twin", "discovery", "decision", "general_rag"]:
+                return clean_res
+        except Exception as e:
+            logger.warning("llm_intent_classification_failed", error=str(e))
+            
+        return "general_rag"
+
+    @classmethod
     def execute_rag(
         cls,
         db: Session,
@@ -86,11 +120,12 @@ class RAGService:
             tag_pattern = r"\b(pump-p102|turbine-t203|boiler-b401|comp-c300|substation-e1)\b" # fallback to prevent broken regex
 
         # Check if any documents exist in the database and it is a general question
-        is_exec = any(k in q_lower for k in ["health of the plant", "executive attention", "financial risk", "executive summary", "highest roi"])
-        is_learn = any(k in q_lower for k in ["frequently rejected", "manuals require update", "manuals require updates", "engineers corrected", "learned this month", "ai learned", "highest approval"])
-        is_twin = any(k in q_lower for k in ["digital twin", "compare pump", "compare turbine", "compare asset", "knowledge score low", "operational history"])
-        is_disc = any(k in q_lower for k in ["what hidden risks exist", "what knowledge is missing", "show repeated failures", "what documents should be updated", "which equipment has poor documentation", "show optimization opportunities"])
-        is_dec = any(k in q_lower for k in ["what should i do next", "maintenance first", "highest business risk", "saves the most downtime"]) or ("marked high risk" in q_lower or "why is" in q_lower)
+        intent = cls.classify_intent(question)
+        is_exec = (intent == "executive") or any(k in q_lower for k in ["health of the plant", "executive attention", "financial risk", "executive summary", "highest roi"])
+        is_learn = (intent == "learning") or any(k in q_lower for k in ["frequently rejected", "manuals require update", "manuals require updates", "engineers corrected", "learned this month", "ai learned", "highest approval"])
+        is_twin = (intent == "twin") or any(k in q_lower for k in ["digital twin", "compare pump", "compare turbine", "compare asset", "knowledge score low", "operational history"])
+        is_disc = (intent == "discovery") or any(k in q_lower for k in ["what hidden risks exist", "what knowledge is missing", "show repeated failures", "what documents should be updated", "which equipment has poor documentation", "show optimization opportunities"])
+        is_dec = (intent == "decision") or any(k in q_lower for k in ["what should i do next", "maintenance first", "highest business risk", "saves the most downtime"]) or ("marked high risk" in q_lower or "why is" in q_lower)
         
         if doc_count == 0 and not (is_exec or is_learn or is_twin or is_disc or is_dec):
             session_uuid = session_uuid or str(uuid.uuid4())
@@ -118,15 +153,7 @@ class RAGService:
             )
 
         # Executive AI Command Center Interceptor (Phase 14)
-        is_executive_query = any(k in q_lower for k in [
-            "health of the plant",
-            "executive attention",
-            "financial risk",
-            "executive summary",
-            "highest roi"
-        ])
-        
-        if is_executive_query:
+        if is_exec:
             from app.services.executive_service import ExecutiveService
             from app.models.equipment import Equipment
             
@@ -206,17 +233,7 @@ class RAGService:
             )
 
         # Continuous Learning & Feedback Intelligence Interceptor (Phase 13)
-        is_learning_query = any(k in q_lower for k in [
-            "frequently rejected",
-            "manuals require update",
-            "manuals require updates",
-            "engineers corrected",
-            "learned this month",
-            "ai learned",
-            "highest approval"
-        ])
-        
-        if is_learning_query:
+        if is_learn:
             from app.models.learning import (
                 FeedbackRecord,
                 LearningEvent,
@@ -308,16 +325,7 @@ class RAGService:
             )
 
         # Industrial Digital Knowledge Twin Interceptor (Phase 12)
-        is_twin_query = any(k in q_lower for k in [
-            "digital twin",
-            "compare pump",
-            "compare turbine",
-            "compare asset",
-            "knowledge score low",
-            "operational history"
-        ])
-        
-        if is_twin_query:
+        if is_twin:
             from app.services.twin_service import TwinService
             from app.models.equipment import Equipment
             import re
@@ -429,16 +437,7 @@ class RAGService:
             )
 
         # Industrial Intelligence Discovery Engine Interceptor (Phase 11)
-        is_discovery_query = any(k in q_lower for k in [
-            "what hidden risks exist",
-            "what knowledge is missing",
-            "show repeated failures",
-            "what documents should be updated",
-            "which equipment has poor documentation",
-            "show optimization opportunities"
-        ])
-        
-        if is_discovery_query:
+        if is_disc:
             from app.models.discovery import (
                 DiscoveryFinding,
                 PatternRelationship,
@@ -542,14 +541,7 @@ class RAGService:
                 timestamp=datetime.utcnow()
             )
 
-        is_decision_query = any(k in q_lower for k in [
-            "what should i do next",
-            "maintenance first",
-            "highest business risk",
-            "saves the most downtime"
-        ]) or ("marked high risk" in q_lower or "why is" in q_lower)
-
-        if is_decision_query:
+        if is_dec:
             from app.models.decision_intelligence import DecisionRecommendation
             from app.models.equipment import Equipment
             from sqlalchemy import desc

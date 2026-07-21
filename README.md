@@ -88,8 +88,14 @@ To support predictive health categorization, we use a custom, zero-dependency ma
 
 ## 🚀 Installation & Running
 
+### Database Setup
+Before starting the application, ensure the database schema migrations are applied. Run the following command from the `backend/` directory:
+```bash
+alembic upgrade head
+```
+
 ### Option 1: Docker Compose (Recommended)
-To run the containers, execute:
+To build and run the entire multi-container application, execute:
 
 ```bash
 docker-compose up --build
@@ -102,3 +108,11 @@ docker-compose up --build
 We have created automation controllers to check ports and launch container builds easily:
 - **PowerShell (Windows)**: Run `powershell ./docker/run.ps1`
 - **Shell (Linux/Git Bash)**: Run `bash ./docker/run.sh`
+
+---
+
+## 🎥 Video Demonstration & Presentation Deck
+
+- **Walkthrough Demonstration Video**: A full 7-minute platform walkthrough demonstrating the Executive Dashboard, AI Copilot, 360° Knowledge Graph, Multi-Agent Investigation, and Production telemetry is available here: **[Watch Platform Demo on Vimeo](https://vimeo.com/placeholder-indusmind-demo)**
+- **PowerPoint Slide Deck**: The complete 20-slide presentation deck is compiled and available in the repository at: [docs/final_release/POWERPOINT_PRESENTATION_DECK.pptx](file:///c:/Users/vigne/Downloads/portfolio/INDUSMIND%20AI/docs/final_release/POWERPOINT_PRESENTATION_DECK.pptx).
+- **Presentation Script**: The detailed script matching the demonstration video slides is located at: [docs/final_release/DEMO_SCRIPTS.md](file:///c:/Users/vigne/Downloads/portfolio/INDUSMIND%20AI/docs/final_release/DEMO_SCRIPTS.md).

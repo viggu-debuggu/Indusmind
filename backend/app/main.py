@@ -68,9 +68,7 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error("postgres_vector_extension_failed", error=str(e))
             
-        # Automatically compile all tables in PostgreSQL
-        Base.metadata.create_all(bind=engine)
-        logger.info("database_tables_compiled_successfully")
+
         
         # Seed industrial enterprise hierarchy
         from app.database.seed import seed_hierarchy_data
@@ -99,8 +97,9 @@ app = FastAPI(
 
 # CORS configuration
 origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    origin.strip()
+    for origin in settings.ALLOWED_ORIGINS.split(",")
+    if origin.strip()
 ]
 
 app.add_middleware(

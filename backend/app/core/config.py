@@ -1,5 +1,6 @@
 import os
 from typing import Literal, Optional
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,9 +21,21 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://indusmind_user:indusmind_password@localhost:5432/indusmind_db"
 
     # Security
-    SECRET_KEY: str = "your-super-secret-key-change-in-production-123456"
+    SECRET_KEY: Optional[str] = None
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
+    
+    # CORS
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    @model_validator(mode="after")
+    def validate_secret_key(self) -> "Settings":
+        if not self.SECRET_KEY:
+            if self.ENVIRONMENT == "production":
+                raise ValueError("CRITICAL SECURITY ERROR: SECRET_KEY environment variable is not configured for production mode!")
+            else:
+                self.SECRET_KEY = "insecure-development-fallback-key-should-be-replaced-in-env"
+        return self
 
     # Storage Settings
     STORAGE_PROVIDER: Literal["local", "s3", "azure", "minio"] = "local"

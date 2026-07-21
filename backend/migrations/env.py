@@ -39,6 +39,13 @@ from app.models.compliance import Regulation, ComplianceAudit
 from app.models.lessons_learned import IncidentRecord
 from app.models.notification import Notification
 from app.models.audit_log import AuditLog
+from app.models.expert_knowledge import ExpertKnowledge
+from app.models.decision_intelligence import DecisionRecommendation, DecisionEvidence
+from app.models.agent_intelligence import AgentExecution, AgentMemory, AgentMessage, AgentMetric, AgentCollaboration
+from app.models.discovery import DiscoveryFinding, PatternRelationship, KnowledgeGapRecord, OptimizationOpportunity, RiskDiscovery
+from app.models.twin import KnowledgeTwin, KnowledgeHealth, AssetComparison, TwinSnapshot
+from app.models.learning import FeedbackRecord, LearningEvent, RecommendationValidation, KnowledgeEvolution, ModelEvaluation
+from app.models.executive import ExecutiveMetric, ExecutiveReport, FinancialImpact, EnterpriseKPI, RiskSummary
 
 target_metadata = Base.metadata
 

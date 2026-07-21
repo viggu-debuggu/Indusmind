@@ -22,6 +22,41 @@ from app.core.logging import logger
 class AgentOrchestrator:
     """Orchestrates structured collaborative reasoning, message exchanges, and traces logging."""
 
+    @classmethod
+    def classify_intent(cls, question: str) -> str:
+        """
+        Classifies user query intent into categories:
+        {executive, learning, twin, discovery, decision, general_rag}
+        """
+        import os
+        from app.ai.llm_service import LLMService
+        provider = os.getenv("LLM_PROVIDER", "mock").lower().strip()
+        if provider == "mock":
+            return "general_rag"
+            
+        system_prompt = (
+            "You are an intent classifier for an industrial plant safety & engineering assistant.\n"
+            "Map the user question to exactly one of the following lowercase tags:\n"
+            "- executive (questions about overall plant health metrics, dashboard, executive briefing/attention, financial impact or risk, highest ROI, executive summary reports)\n"
+            "- learning (questions about continuous learning, frequently rejected updates, QA evaluation ratings, satisfaction levels, engineer corrections, model training evolution)\n"
+            "- twin (questions asking for a digital twin, side-by-side asset comparison, operational history/timeline of a specific machinery asset like PUMP-P102, knowledge score diagnostics)\n"
+            "- discovery (questions about hidden risks, data/SOP checklist gaps, repeated/recurring failures, optimization opportunities, correlation patterns)\n"
+            "- decision (questions about what to do next, maintenance queue priority, highest business or failure risk, saves the most downtime, why is asset high-risk)\n"
+            "- general_rag (general engineering questions about startup steps, temperature/pressure ratings, calibration procedures, manual instructions, troubleshooting guidelines)\n"
+            "Response MUST only be the single tag word (no punctuation, no markdown, just the word)."
+        )
+        prompt = f"User Question: '{question}'"
+        
+        try:
+            res = LLMService.generate_response(prompt=prompt, system_prompt=system_prompt)
+            clean_res = res.strip().lower().replace("`", "").replace("'", "").replace('"', "")
+            if clean_res in ["executive", "learning", "twin", "discovery", "decision", "general_rag"]:
+                return clean_res
+        except Exception as e:
+            logger.warning("llm_intent_classification_failed", error=str(e))
+            
+        return "general_rag"
+
     AGENT_MAP = {
         "Maintenance Agent": MaintenanceAgent,
         "Compliance Agent": ComplianceAgent,
@@ -59,22 +94,34 @@ class AgentOrchestrator:
         eq_id = eq.id if eq else (db.query(Equipment).first().id if db.query(Equipment).count() > 0 else 1)
 
         # 2. Select participating agents
-        agents_to_run = []
-        if any(k in q_lower for k in ["maintenance", "failure", "repair", "rul", "parts"]):
-            agents_to_run = ["Maintenance Agent", "Document Intelligence Agent"]
-        elif any(k in q_lower for k in ["compliance", "peso", "oisd", "regulation", "clause", "act"]):
-            agents_to_run = ["Compliance Agent", "Document Intelligence Agent"]
-        elif any(k in q_lower for k in ["safety", "hazard", "ppe", "permit", "risk"]):
-            agents_to_run = ["Safety Agent", "Compliance Agent"]
-        elif any(k in q_lower for k in ["why", "root cause", "rca", "incident"]):
-            agents_to_run = ["Root Cause Analysis Agent", "Maintenance Agent", "Knowledge Graph Agent"]
-        elif any(k in q_lower for k in ["quality", "deviation", "inspection", "capa", "calibration"]):
-            agents_to_run = ["Quality Agent", "Maintenance Agent"]
-        elif any(k in q_lower for k in ["graph", "relation", "dependency"]):
+        intent = cls.classify_intent(question)
+        if intent == "twin":
+            agents_to_run = ["Knowledge Graph Agent", "Maintenance Agent"]
+        elif intent == "discovery":
             agents_to_run = ["Knowledge Graph Agent", "Document Intelligence Agent"]
+        elif intent == "decision":
+            agents_to_run = ["Root Cause Analysis Agent", "Maintenance Agent", "Knowledge Graph Agent"]
+        elif intent == "executive":
+            agents_to_run = ["Root Cause Analysis Agent", "Document Intelligence Agent", "Knowledge Graph Agent"]
+        elif intent == "learning":
+            agents_to_run = ["Quality Agent", "Maintenance Agent"]
         else:
-            # Default collaborative team
-            agents_to_run = ["Maintenance Agent", "Safety Agent", "Document Intelligence Agent"]
+            # Fallback to keyword-based selection
+            if any(k in q_lower for k in ["maintenance", "failure", "repair", "rul", "parts"]):
+                agents_to_run = ["Maintenance Agent", "Document Intelligence Agent"]
+            elif any(k in q_lower for k in ["compliance", "peso", "oisd", "regulation", "clause", "act"]):
+                agents_to_run = ["Compliance Agent", "Document Intelligence Agent"]
+            elif any(k in q_lower for k in ["safety", "hazard", "ppe", "permit", "risk"]):
+                agents_to_run = ["Safety Agent", "Compliance Agent"]
+            elif any(k in q_lower for k in ["why", "root cause", "rca", "incident"]):
+                agents_to_run = ["Root Cause Analysis Agent", "Maintenance Agent", "Knowledge Graph Agent"]
+            elif any(k in q_lower for k in ["quality", "deviation", "inspection", "capa", "calibration"]):
+                agents_to_run = ["Quality Agent", "Maintenance Agent"]
+            elif any(k in q_lower for k in ["graph", "relation", "dependency"]):
+                agents_to_run = ["Knowledge Graph Agent", "Document Intelligence Agent"]
+            else:
+                # Default collaborative team
+                agents_to_run = ["Maintenance Agent", "Safety Agent", "Document Intelligence Agent"]
 
         # Ensure unique list
         agents_to_run = list(dict.fromkeys(agents_to_run))

@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir --user torch --index-url https://download.pytorch.org/whl/cpu && \
+RUN pip install --no-cache-dir --user torch==2.3.1+cpu --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir --user -r requirements.txt
 
 

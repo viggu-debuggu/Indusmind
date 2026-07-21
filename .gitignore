@@ -26,3 +26,6 @@ storage/
 # OS
 .DS_Store
 Thumbs.db
+
+# Scratch debug scripts
+backend/scratch/
