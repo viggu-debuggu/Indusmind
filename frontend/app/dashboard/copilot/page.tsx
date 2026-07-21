@@ -492,19 +492,20 @@ export default function AICopilotPage() {
         
         {/* HEADER CONTROLS */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center justify-between w-full md:w-auto">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2">
-                AI Copilot Workspace <Sparkles className="w-5 h-5 text-indigo-500" />
-              </h1>
+          <div>
+            <div className="flex items-center justify-between w-full md:w-auto">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2">
+                  AI Copilot Workspace <Sparkles className="w-5 h-5 text-indigo-500" />
+                </h1>
+              </div>
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden px-3 py-1.5 border border-slate-800 hover:bg-slate-800 text-xs font-bold text-slate-300 rounded-lg transition-all flex items-center gap-1.5"
+              >
+                <Menu className="w-4 h-4 text-indigo-500" /> Threads
+              </button>
             </div>
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden px-3 py-1.5 border border-slate-800 hover:bg-slate-800 text-xs font-bold text-slate-300 rounded-lg transition-all flex items-center gap-1.5"
-            >
-              <Menu className="w-4 h-4 text-indigo-500" /> Threads
-            </button>
-          </div>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Query manuals, SOPs, and historical failure patterns via natural language processing.
             </p>
