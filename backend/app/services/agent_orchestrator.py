@@ -77,6 +77,8 @@ class AgentOrchestrator:
     ) -> Tuple[str, List[str], List[str], float]:
         """Intercepts query, determines participating agents, executes trace, and synthesizes answers."""
         q_lower = question.lower().strip()
+        # Normalize unicode dashes (U+2011 non-breaking hyphen, U+2013 en-dash, U+2014 em-dash) to ASCII hyphen
+        q_lower = q_lower.replace('\u2011', '-').replace('\u2013', '-').replace('\u2014', '-')
         
         # Compile dynamic tag regex from DB
         from sqlalchemy import text
@@ -87,11 +89,42 @@ class AgentOrchestrator:
         else:
             tag_pattern = r"\b(pump-p102|turbine-t203|boiler-b401|comp-c300|substation-e1)\b"
 
+        # ── SHORTCUT: "list all machines / what machines / show all equipment" ──
+        list_keywords = ["what machines", "list machines", "all machines", "what equipment", 
+                         "list equipment", "all equipment", "all assets", "list assets",
+                         "show machines", "show equipment", "show all assets", "how many machines",
+                         "how many equipment", "what assets"]
+        if any(kw in q_lower for kw in list_keywords):
+            all_eq = db.query(Equipment).order_by(Equipment.asset_tag).all()
+            if not all_eq:
+                list_answer = "### 🏭 Plant Equipment Registry\n\nNo equipment has been registered yet. Go to **Equipment Registry** to add your first machine."
+            else:
+                list_answer = f"### 🏭 Plant Equipment Registry — {len(all_eq)} Asset(s) Registered\n\n"
+                list_answer += "| Asset Tag | Asset Name | Location | Department | Status | Health | Running Hours |\n"
+                list_answer += "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
+                for e in all_eq:
+                    status_icon = "✅" if e.status == "Operational" else ("🔧" if e.status == "Maintenance" else "🔴")
+                    list_answer += f"| `{e.asset_tag}` | {e.asset_name} | {e.plant} | {e.department} | {status_icon} {e.status} | **{e.health_score:.0f}%** | {e.running_hours:,.0f} hrs |\n"
+                list_answer += f"\n> **AI Summary**: {sum(1 for e in all_eq if e.status == 'Operational')} of {len(all_eq)} assets are Operational. "
+                offline = [e.asset_tag for e in all_eq if e.status not in ('Operational',)]
+                if offline:
+                    list_answer += f"Assets requiring attention: **{', '.join(offline)}**."
+                else:
+                    list_answer += "All assets are running within normal parameters."
+            return list_answer, ["Document Intelligence Agent"], ["Orchestrator returned full equipment inventory list."], 95.0
+
         # 1. Resolve equipment_id from asset tag mentioned in query
         tag_match = re.search(tag_pattern, q_lower)
-        asset_tag = tag_match.group(1).upper() if tag_match else (db_tags[0].upper() if db_tags else "PUMP-P102")
-        eq = db.query(Equipment).filter(Equipment.asset_tag == asset_tag).first()
-        eq_id = eq.id if eq else (db.query(Equipment).first().id if db.query(Equipment).count() > 0 else 1)
+        asset_tag = tag_match.group(1).upper() if tag_match else None
+
+        # If no specific asset tag found in question, use first asset as context but note it
+        if asset_tag:
+            eq = db.query(Equipment).filter(Equipment.asset_tag == asset_tag).first()
+        else:
+            eq = db.query(Equipment).first()
+            if eq:
+                asset_tag = eq.asset_tag
+        eq_id = eq.id if eq else 1
 
         # 2. Select participating agents
         intent = cls.classify_intent(question)
@@ -221,7 +254,7 @@ class AgentOrchestrator:
         related_findings = db.query(DiscoveryFinding).filter(DiscoveryFinding.affected_assets.ilike(f"%{asset_tag}%")).limit(3).all()
 
         # Text chunks search fallback
-        doc_chunks = db.query(DocumentChunk).filter(DocumentChunk.content.ilike(f"%{asset_tag}%")).limit(3).all()
+        doc_chunks = db.query(DocumentChunk).filter(DocumentChunk.text.ilike(f"%{asset_tag}%")).limit(3).all()
 
         # Telemetry context
         health = eq.health_score if eq else 100.0
@@ -273,7 +306,7 @@ class AgentOrchestrator:
         if related_incidents:
             final_answer += f"- **Incident history**: Mapped previous failure cause: *\"{related_incidents[0].cause}\"*.\n"
         if doc_chunks:
-            final_answer += f"- **Manual grounding**: Document chunk citation: *\"{doc_chunks[0].content[:160]}...\"*\n"
+            final_answer += f"- **Manual grounding**: Document chunk citation: *\"{doc_chunks[0].text[:160]}...\"*\n"
         else:
             final_answer += "- **Manual grounding**: Checked against registered plant operational specifications.\n"
         final_answer += "\n"

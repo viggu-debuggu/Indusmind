@@ -130,13 +130,13 @@ export default function DashboardPage() {
 
         // Parallel fetch
         const [docsRes, eqRes, healthRes] = await Promise.all([
-          api.get("/api/documents?limit=5").catch(() => ({ data: { total: 0, documents: [] } })),
+          api.get("/api/documents?limit=5").catch(() => ({ data: { total: 0, items: [] } })),
           api.get("/api/equipment").catch(() => ({ data: [] })),
           api.get("/api/health").catch(() => ({ data: null })),
         ]);
 
         setDocCount(docsRes.data.total || 0);
-        setRecentDocs(docsRes.data.documents || []);
+        setRecentDocs(docsRes.data.items || []);
         setEquipment(eqRes.data || []);
         setHealthData(healthRes.data || null);
 

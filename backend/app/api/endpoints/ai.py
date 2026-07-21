@@ -306,6 +306,7 @@ def list_asset_tags(
 
 
 @router.get("/graph", response_model=GraphResponse)
+@router.get("/ai/graph", response_model=GraphResponse)
 def get_knowledge_graph(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

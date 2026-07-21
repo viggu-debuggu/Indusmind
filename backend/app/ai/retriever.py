@@ -21,41 +21,47 @@ class Retriever:
         """
         from app.models.hierarchy import UserOrganizationGrant
         from app.models.user import User as UserModel
-        
+
         if user.role == "Super Admin":
-            grants = db.query(UserOrganizationGrant).filter(UserOrganizationGrant.user_id == user.id).all()
-            allowed_org_ids = [g.organization_id for g in grants]
-        else:
-            allowed_org_ids = [user.organization_id] if user.organization_id else []
-            
+            # Super Admins can always see all non-deleted documents,
+            # regardless of whether they have explicit org grants
+            query = db.query(DocumentModel.id).filter(
+                DocumentModel.status != "Deleted",
+                DocumentModel.deleted_at.is_(None)
+            )
+            if filter_category:
+                query = query.filter(DocumentModel.category == filter_category)
+            return [row[0] for row in query.all()]
+
+        # Non-super-admin: scope to user's organization
+        allowed_org_ids = [user.organization_id] if user.organization_id else []
         if not allowed_org_ids:
             return []
-            
+
         allowed_users = db.query(UserModel.id).filter(UserModel.organization_id.in_(allowed_org_ids)).all()
         allowed_user_ids = [r[0] for r in allowed_users]
-        
+
         query = db.query(DocumentModel.id).filter(DocumentModel.uploaded_by.in_(allowed_user_ids))
-        
+
         # Only published documents are searchable by general employees
-        if user.role not in ("Super Admin", "Admin", "Department Manager"):
+        if user.role not in ("Admin", "Department Manager"):
             query = query.filter(DocumentModel.approval_status == "Published")
-            
+
         # Enforce active statuses for regular personnel
-        if user.role in ("Super Admin", "Admin", "Department Manager"):
-            # Admins & managers can view everything except deleted files
+        if user.role in ("Admin", "Department Manager"):
             query = query.filter(DocumentModel.status != "Deleted")
         else:
-            # Engineers, Technicians, Viewers, Auditors can only access fully active Uploaded files
             query = query.filter(DocumentModel.status == "Uploaded")
 
-        # Exclude deleted_at
+        # Exclude soft-deleted
         query = query.filter(DocumentModel.deleted_at.is_(None))
-        
+
         if filter_category:
             query = query.filter(DocumentModel.category == filter_category)
-            
+
         doc_ids = [row[0] for row in query.all()]
         return doc_ids
+
 
     @classmethod
     def retrieve_relevant_chunks(

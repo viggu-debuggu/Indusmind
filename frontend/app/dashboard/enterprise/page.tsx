@@ -34,7 +34,7 @@ export default function EnterpriseHubPage() {
   };
 
   const handleExport = (format: string) => {
-    window.open(`http://localhost:8000/api/v1/enterprise/export/${format}`, "_blank");
+    window.open(`http://localhost:8000/api/enterprise/export/${format}`, "_blank");
   };
 
   return (

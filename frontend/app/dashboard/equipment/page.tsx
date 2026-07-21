@@ -311,7 +311,7 @@ export default function EquipmentPage() {
               </button>
             </div>
 
-            <form onSubmit={handleRegisterAsset} className="p-6 space-y-4">
+            <form onSubmit={handleRegisterAsset} className="p-6 space-y-4 max-h-[78vh] overflow-y-auto">
               {formError && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-semibold flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -319,48 +319,61 @@ export default function EquipmentPage() {
                 </div>
               )}
 
+              {/* Row 1: Asset Name + Asset Tag */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">Asset Name</label>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                    Asset Name <span className="text-red-400">*</span>
+                  </label>
                   <input
                     required
                     type="text"
                     name="assetName"
                     value={formData.assetName}
                     onChange={handleInputChange}
-                    placeholder="e.g. Compressor Boiler"
+                    placeholder="e.g. High-Pressure Boiler"
                     className="mt-1.5 w-full px-3 py-2 border rounded-lg text-sm bg-slate-950 border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
+                  <p className="mt-1 text-[10px] text-slate-500">Human-readable machine name</p>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">Asset Tag (Unique)</label>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                    Asset Tag <span className="text-red-400">*</span>
+                  </label>
                   <input
                     required
                     type="text"
                     name="assetTag"
                     value={formData.assetTag}
                     onChange={handleInputChange}
-                    placeholder="e.g. COMP-C300"
-                    className="mt-1.5 w-full px-3 py-2 border rounded-lg text-sm bg-slate-950 border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    placeholder="e.g. BOILER-01"
+                    className="mt-1.5 w-full px-3 py-2 border rounded-lg text-sm bg-slate-950 border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
                   />
+                  <p className="mt-1 text-[10px] text-slate-500">Unique ID code — must not repeat</p>
                 </div>
               </div>
 
+              {/* Row 2: Plant Location + Department */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">Plant Location</label>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                    Plant Location <span className="text-red-400">*</span>
+                  </label>
                   <input
                     required
                     type="text"
                     name="plant"
                     value={formData.plant}
                     onChange={handleInputChange}
-                    placeholder="e.g. Plant Section A"
+                    placeholder="e.g. Unit 2 - Block A"
                     className="mt-1.5 w-full px-3 py-2 border rounded-lg text-sm bg-slate-950 border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
+                  <p className="mt-1 text-[10px] text-slate-500">Physical area / section in the factory</p>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">Department</label>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                    Department <span className="text-red-400">*</span>
+                  </label>
                   <input
                     required
                     type="text"
@@ -370,37 +383,48 @@ export default function EquipmentPage() {
                     placeholder="e.g. Operations"
                     className="mt-1.5 w-full px-3 py-2 border rounded-lg text-sm bg-slate-950 border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
+                  <p className="mt-1 text-[10px] text-slate-500">Which team manages this machine</p>
                 </div>
               </div>
 
+              {/* Row 3: Manufacturer + Model Code */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">Manufacturer</label>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                    Manufacturer <span className="text-[10px] font-normal text-slate-600 normal-case">(optional)</span>
+                  </label>
                   <input
                     type="text"
                     name="manufacturer"
                     value={formData.manufacturer}
                     onChange={handleInputChange}
-                    placeholder="e.g. Siemens"
+                    placeholder="e.g. Siemens, ABB, GE"
                     className="mt-1.5 w-full px-3 py-2 border rounded-lg text-sm bg-slate-950 border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
+                  <p className="mt-1 text-[10px] text-slate-500">Brand that made this machine</p>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">Model Code</label>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                    Model Code <span className="text-[10px] font-normal text-slate-600 normal-case">(optional)</span>
+                  </label>
                   <input
                     type="text"
                     name="model"
                     value={formData.model}
                     onChange={handleInputChange}
-                    placeholder="e.g. SGT-800"
+                    placeholder="e.g. SGT-800, 3500E"
                     className="mt-1.5 w-full px-3 py-2 border rounded-lg text-sm bg-slate-950 border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
+                  <p className="mt-1 text-[10px] text-slate-500">Machine model / series number</p>
                 </div>
               </div>
 
+              {/* Row 4: Installation Date + Current Status */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">Installation Date</label>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                    Installation Date <span className="text-red-400">*</span>
+                  </label>
                   <input
                     required
                     type="date"
@@ -409,18 +433,45 @@ export default function EquipmentPage() {
                     onChange={handleInputChange}
                     className="mt-1.5 w-full px-3 py-2 border rounded-lg text-sm bg-slate-950 border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
+                  <p className="mt-1 text-[10px] text-slate-500">When this machine was first commissioned</p>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">Initial Running Hours</label>
-                  <input
-                    type="number"
-                    name="runningHours"
-                    value={formData.runningHours}
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                    Current Status <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    name="status"
+                    value={formData.status}
                     onChange={handleInputChange}
-                    min="0"
-                    className="mt-1.5 w-full px-3 py-2 border rounded-lg text-sm bg-slate-950 border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
+                    className="mt-1.5 w-full px-3 py-2 border rounded-lg text-sm bg-slate-950 border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="Operational">✅ Operational</option>
+                    <option value="Maintenance">🔧 Under Maintenance</option>
+                    <option value="Offline">🔴 Offline</option>
+                    <option value="Decommissioned">⚫ Decommissioned</option>
+                  </select>
+                  <p className="mt-1 text-[10px] text-slate-500">Machine&apos;s current operating state</p>
                 </div>
+              </div>
+
+              {/* Row 5: Running Hours — full width */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                  Initial Running Hours <span className="text-[10px] font-normal text-slate-600 normal-case">(optional — enter 0 if new)</span>
+                </label>
+                <input
+                  type="number"
+                  name="runningHours"
+                  value={formData.runningHours}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.5"
+                  placeholder="0"
+                  className="mt-1.5 w-full px-3 py-2 border rounded-lg text-sm bg-slate-950 border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                <p className="mt-1 text-[10px] text-slate-500">
+                  How many hours has this machine already run before today? Enter <span className="text-white font-semibold">0</span> if this is a brand-new machine.
+                </p>
               </div>
 
               <div className="pt-4 border-t border-slate-800/80 flex justify-end gap-2.5">

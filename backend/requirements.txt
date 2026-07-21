@@ -22,5 +22,6 @@ python-pptx>=0.6.21
 pytesseract>=0.3.10
 pillow>=10.2.0
 sentence-transformers>=2.6.0
+transformers>=4.38.0,<4.45.0
 pgvector>=0.2.5
 openai>=1.14.0

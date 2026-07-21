@@ -53,8 +53,11 @@ export default function SearchPage() {
   useEffect(() => {
     const fetchAssets = async () => {
       try {
-        const res = await api.get("/api/ai/assets");
-        if (res.data) setAssets(res.data);
+        const res = await api.get("/api/equipment");
+        if (res.data && Array.isArray(res.data)) {
+          const tags = res.data.map((e: any) => e.assetTag || e.asset_tag).filter(Boolean);
+          if (tags.length > 0) setAssets(tags);
+        }
       } catch (err) {
         console.error("Failed to load assets context tags", err);
       }

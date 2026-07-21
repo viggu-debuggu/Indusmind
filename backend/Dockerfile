@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir --user torch==2.3.1+cpu --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --user torch>=2.4.0 --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir --user "transformers<4.45.0" -r requirements.txt
 
 
 FROM python:3.12-slim as runner

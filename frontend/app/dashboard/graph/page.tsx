@@ -53,7 +53,7 @@ export default function KnowledgeGraphPage() {
     async function fetchGraphData() {
       try {
         setIsLoading(true);
-        const res = await api.get("/api/ai/graph");
+        const res = await api.get("/api/graph");
         const rawNodes = res.data.nodes || [];
         const rawEdges = res.data.edges || [];
 

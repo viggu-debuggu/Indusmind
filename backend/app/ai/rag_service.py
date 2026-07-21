@@ -105,6 +105,8 @@ class RAGService:
                 ws_id = ws.id
 
         q_lower = question.lower()
+        # Normalize unicode dashes to ASCII hyphen so "C‑201" matches "C-201"
+        q_lower = q_lower.replace('\u2011', '-').replace('\u2013', '-').replace('\u2014', '-')
 
         # Check if any documents are uploaded in the database
         doc_count = db.query(DocumentModel).filter(DocumentModel.deleted_at.is_(None)).count()
@@ -545,7 +547,6 @@ class RAGService:
             from app.models.decision_intelligence import DecisionRecommendation
             from app.models.equipment import Equipment
             from sqlalchemy import desc
-            from app.ai.schemas import DocumentReference
             
             answer = ""
             if "what should i do next" in q_lower or "maintenance first" in q_lower:
@@ -651,20 +652,133 @@ class RAGService:
                 timestamp=datetime.utcnow()
             )
 
-        # Multi-Agent Platform Orchestrator (Phase 10)
-        from app.services.agent_orchestrator import AgentOrchestrator
-        
+        # ── REAL RAG PATH ── Try document retrieval first before any template fallback
+        # 1. Retrieve relevant chunks from uploaded PDFs via vector similarity search
+        chunks_with_scores = Retriever.retrieve_relevant_chunks(
+            db=db,
+            user=user,
+            query_text=question,
+            limit=5,
+            asset_tag=asset_tag,
+            category=category,
+            workspace_uuid=workspace_uuid
+        )
+
         session_uuid = session_uuid or str(uuid.uuid4())
         cls._ensure_session(db, user.id, session_uuid, question[:40] + "...", workspace_id=ws_id)
         cls._save_message(db, session_uuid, "user", question)
-        
+
+        if chunks_with_scores:
+            # ── DOCUMENTS FOUND → Generate real answer from your PDFs ──
+            prompt_chunks = []
+            doc_refs_map = {}
+            equipment_mentions = set()
+
+            for chunk, score in chunks_with_scores:
+                doc = db.query(DocumentModel).filter(DocumentModel.id == chunk.document_id).first()
+                if not doc:
+                    continue
+                prompt_chunks.append({
+                    "document_name": doc.document_name,
+                    "page": chunk.page,
+                    "section": chunk.chunk_metadata.get("section"),
+                    "text": chunk.text
+                })
+                if doc.id not in doc_refs_map:
+                    doc_refs_map[doc.id] = DocumentReference(
+                        id=doc.id,
+                        uuid=doc.uuid,
+                        document_name=doc.document_name,
+                        original_filename=doc.original_filename,
+                        page=chunk.page,
+                        category=doc.category
+                    )
+                mentions = chunk.chunk_metadata.get("equipment_mentioned", [])
+                for m in mentions:
+                    equipment_mentions.add(m)
+
+            # Inject lessons learned incident records as additional context
+            from app.models.lessons_learned import IncidentRecord
+            incidents = []
+            if asset_tag:
+                from app.models.equipment import Equipment as EquipmentModel
+                eq_node = db.query(EquipmentModel).filter(EquipmentModel.asset_tag == asset_tag).first()
+                if eq_node:
+                    incidents = db.query(IncidentRecord).filter(IncidentRecord.equipment_id == eq_node.id).all()
+            else:
+                words = [w for w in question.lower().split() if len(w) > 4]
+                if words:
+                    from sqlalchemy import or_
+                    filters = [IncidentRecord.incident_name.like(f"%{w}%") for w in words]
+                    incidents = db.query(IncidentRecord).filter(or_(*filters)).limit(3).all()
+
+            incident_context = ""
+            if incidents:
+                incident_context = "\n\nHISTORICAL SIMILAR INCIDENTS (LESSONS LEARNED):\n"
+                for inc in incidents:
+                    incident_context += (
+                        f"- Incident: {inc.incident_name}\n"
+                        f"  Cause: {inc.cause}\n"
+                        f"  Resolution: {inc.resolution}\n"
+                        f"  Prevention: {inc.prevention}\n"
+                        f"  Recommendations: {inc.recommendations}\n"
+                    )
+
+            system_prompt = PromptBuilder.build_system_prompt()
+            user_prompt = PromptBuilder.build_user_prompt(question, prompt_chunks) + incident_context
+
+            try:
+                raw_answer = LLMService.generate_response(prompt=user_prompt, system_prompt=system_prompt)
+            except Exception as e:
+                logger.error("rag_llm_generation_failed", error=str(e))
+                raw_answer = "Error generating response from LLM. Please check your GROQ_API_KEY in .env."
+
+            citations_list = CitationExtractor.extract_citations(raw_answer)
+            confidence = cls.calculate_confidence_score(chunks_with_scores, raw_answer)
+
+            docs_used_schema = list(doc_refs_map.values())
+            citations_schema = [
+                CitationItem(
+                    source_document=c["source_document"],
+                    page=c["page"],
+                    section=c["section"],
+                    snippet=c["snippet"]
+                )
+                for c in citations_list
+            ]
+
+            cls._save_message(
+                db=db,
+                session_uuid=session_uuid,
+                role="assistant",
+                content=raw_answer,
+                confidence=confidence,
+                docs_used=[d.model_dump() for d in docs_used_schema],
+                citations=citations_list,
+                equipment=list(equipment_mentions)
+            )
+
+            return RAGResponse(
+                answer=raw_answer,
+                confidence_score=confidence,
+                session_uuid=session_uuid,
+                documents_used=docs_used_schema,
+                citations=citations_schema,
+                related_equipment=list(equipment_mentions),
+                timestamp=datetime.utcnow()
+            )
+
+        # ── NO DOCUMENT CHUNKS FOUND → Fall back to Agent Orchestrator templates ──
+        # This runs only when no matching PDF content is retrieved
+        from app.services.agent_orchestrator import AgentOrchestrator
+
         final_answer, agents_used, reasoning_steps, avg_conf = AgentOrchestrator.orchestrate_query(
             db=db,
             question=question,
             session_uuid=session_uuid,
             chat_message_id=None
         )
-        
+
         cls._save_message(
             db=db,
             session_uuid=session_uuid,
@@ -675,7 +789,7 @@ class RAGService:
             citations=[],
             equipment=[asset_tag] if asset_tag else []
         )
-        
+
         return RAGResponse(
             answer=final_answer,
             confidence_score=int(avg_conf),
@@ -688,161 +802,6 @@ class RAGService:
             timestamp=datetime.utcnow()
         )
 
-        # 1. Retrieve relevant chunks (up to 5 chunks)
-        chunks_with_scores = Retriever.retrieve_relevant_chunks(
-            db=db,
-            user=user,
-            query_text=question,
-            limit=5,
-            asset_tag=asset_tag,
-            category=category,
-            workspace_uuid=workspace_uuid
-        )
-
-        # If no chunks match, return early with default fallback
-        fallback_answer = "I could not find this information in the uploaded documents."
-        if not chunks_with_scores:
-            session_uuid = session_uuid or str(uuid.uuid4())
-            cls._ensure_session(db, user.id, session_uuid, question[:50], workspace_id=ws_id)
-            
-            # Save messages in history
-            cls._save_message(db, session_uuid, "user", question)
-            cls._save_message(db, session_uuid, "assistant", fallback_answer, confidence=0)
-            
-            return RAGResponse(
-                answer=fallback_answer,
-                confidence_score=0,
-                session_uuid=session_uuid,
-                documents_used=[],
-                citations=[],
-                related_equipment=[],
-                timestamp=datetime.utcnow()
-            )
-
-        # 2. Format context list for prompts
-        prompt_chunks = []
-        doc_refs_map = {}
-        equipment_mentions = set()
-
-        for chunk, score in chunks_with_scores:
-            doc = db.query(DocumentModel).filter(DocumentModel.id == chunk.document_id).first()
-            if not doc:
-                continue
-                
-            doc_name = doc.document_name
-            prompt_chunks.append({
-                "document_name": doc_name,
-                "page": chunk.page,
-                "section": chunk.chunk_metadata.get("section"),
-                "text": chunk.text
-            })
-            
-            # Track unique documents used
-            if doc.id not in doc_refs_map:
-                doc_refs_map[doc.id] = DocumentReference(
-                    id=doc.id,
-                    uuid=doc.uuid,
-                    document_name=doc.document_name,
-                    original_filename=doc.original_filename,
-                    page=chunk.page,
-                    category=doc.category
-                )
-                
-            # Collect equipment tag mentions in chunk metadata
-            mentions = chunk.chunk_metadata.get("equipment_mentioned", [])
-            for m in mentions:
-                equipment_mentions.add(m)
-
-        # 3. Formulate prompts
-        # Retrieve lessons learned (similar incident records) to inject into prompt context
-        from app.models.lessons_learned import IncidentRecord
-        incidents = []
-        if asset_tag:
-            from app.models.equipment import Equipment
-            eq_node = db.query(Equipment).filter(Equipment.asset_tag == asset_tag).first()
-            if eq_node:
-                incidents = db.query(IncidentRecord).filter(IncidentRecord.equipment_id == eq_node.id).all()
-        else:
-            # Fuzzy match keywords in query
-            incidents_query = db.query(IncidentRecord)
-            words = [w for w in question.lower().split() if len(w) > 4]
-            if words:
-                from sqlalchemy import or_
-                filters = [IncidentRecord.incident_name.like(f"%{w}%") for w in words]
-                incidents = incidents_query.filter(or_(*filters)).limit(3).all()
-            else:
-                incidents = incidents_query.limit(2).all()
-
-        incident_context = ""
-        if incidents:
-            incident_context = "\n\nHISTORICAL SIMILAR INCIDENTS (LESSONS LEARNED):\n"
-            for inc in incidents:
-                incident_context += (
-                    f"- Incident: {inc.incident_name}\n"
-                    f"  Cause: {inc.cause}\n"
-                    f"  Resolution: {inc.resolution}\n"
-                    f"  Prevention: {inc.prevention}\n"
-                    f"  Recommendations: {inc.recommendations}\n"
-                )
-
-        system_prompt = PromptBuilder.build_system_prompt()
-        user_prompt = PromptBuilder.build_user_prompt(question, prompt_chunks) + incident_context
-
-        # 4. Generate response using LLM service
-        try:
-            raw_answer = LLMService.generate_response(prompt=user_prompt, system_prompt=system_prompt)
-        except Exception as e:
-            logger.error("rag_llm_generation_failed", error=str(e))
-            raw_answer = "Error generating response from LLM services. Please check adapter configurations."
-
-        # 5. Extract citations and related entities
-        citations_list = CitationExtractor.extract_citations(raw_answer)
-        confidence = cls.calculate_confidence_score(chunks_with_scores, raw_answer)
-
-        # 6. Session thread tracking & message log recording
-        if not session_uuid:
-            session_uuid = str(uuid.uuid4())
-            # Truncate first question as session title
-            title = question[:40] + "..." if len(question) > 40 else question
-            cls._ensure_session(db, user.id, session_uuid, title, workspace_id=ws_id)
-        else:
-            cls._ensure_session(db, user.id, session_uuid, None, workspace_id=ws_id)
-
-        # Save user question and assistant answer to SQL history
-        cls._save_message(db, session_uuid, "user", question)
-        
-        # Format schema lists
-        docs_used_schema = list(doc_refs_map.values())
-        citations_schema = [
-            CitationItem(
-                source_document=c["source_document"],
-                page=c["page"],
-                section=c["section"],
-                snippet=c["snippet"]
-            )
-            for c in citations_list
-        ]
-        
-        cls._save_message(
-            db=db,
-            session_uuid=session_uuid,
-            role="assistant",
-            content=raw_answer,
-            confidence=confidence,
-            docs_used=[d.model_dump() for d in docs_used_schema],
-            citations=citations_list,
-            equipment=list(equipment_mentions)
-        )
-
-        return RAGResponse(
-            answer=raw_answer,
-            confidence_score=confidence,
-            session_uuid=session_uuid,
-            documents_used=docs_used_schema,
-            citations=citations_schema,
-            related_equipment=list(equipment_mentions),
-            timestamp=datetime.utcnow()
-        )
 
     @classmethod
     def _ensure_session(

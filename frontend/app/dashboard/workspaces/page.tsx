@@ -49,6 +49,7 @@ export default function WorkspacesPage() {
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [isFetchingDocs, setIsFetchingDocs] = useState(false);
   const [newWsName, setNewWsName] = useState("");
   const [newWsDesc, setNewWsDesc] = useState("");
   const [selectedDocIds, setSelectedDocIds] = useState<number[]>([]);
@@ -74,14 +75,26 @@ export default function WorkspacesPage() {
     }
   };
 
-  // Fetch all documents (for linking)
+  // Fetch all documents (for linking) — always fetches fresh from server
   const fetchDocuments = async () => {
     try {
+      setIsFetchingDocs(true);
       const res = await api.get("/api/documents?limit=100");
-      setAllDocuments(res.data.documents || []);
+      // Backend returns { items: [...], total: N, page: N, pages: N }
+      setAllDocuments(res.data.items || []);
     } catch (err) {
       console.error("Failed to fetch documents catalog", err);
+      setAllDocuments([]);
+    } finally {
+      setIsFetchingDocs(false);
     }
+  };
+
+  // Open link modal and always re-fetch latest documents
+  const handleOpenLinkModal = async () => {
+    setIsLinkModalOpen(true);
+    setSelectedDocIds([]);
+    await fetchDocuments();
   };
 
   useEffect(() => {
@@ -146,7 +159,7 @@ export default function WorkspacesPage() {
     setIsSubmitting(true);
     try {
       const res = await api.post(`/api/workspaces/${selectedWs.uuid}/documents`, {
-        documentIds: selectedDocIds
+        document_ids: selectedDocIds
       });
       setSelectedWs(res.data);
       setIsLinkModalOpen(false);
@@ -194,9 +207,8 @@ export default function WorkspacesPage() {
   );
 
   // Filter out documents already linked to selected workspace
-  const linkableDocs = allDocuments.filter(
-    (doc) => !selectedWs?.documents?.some((wsDoc) => wsDoc.id === doc.id)
-  );
+  const linkedDocIds = new Set((selectedWs?.documents ?? []).map((d) => d.id));
+  const linkableDocs = allDocuments.filter((doc) => !linkedDocIds.has(doc.id));
 
   return (
     <div className="space-y-8 text-slate-100 selection:bg-indigo-500 selection:text-white">
@@ -309,7 +321,7 @@ export default function WorkspacesPage() {
                   </div>
                   
                   <button
-                    onClick={() => setIsLinkModalOpen(true)}
+                    onClick={handleOpenLinkModal}
                     className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-950 hover:bg-slate-850 text-indigo-400 border border-indigo-900/40 transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <Link2 className="w-4 h-4" /> Link Documents
@@ -466,7 +478,12 @@ export default function WorkspacesPage() {
               <p className="text-xs text-slate-400 font-light">Select documents from the general catalog to lock them into the "{selectedWs.name}" workspace.</p>
               
               <div className="max-h-60 overflow-y-auto space-y-2 pr-1 border border-slate-850 bg-slate-950/40 rounded-xl p-3">
-                {linkableDocs.length > 0 ? (
+                {isFetchingDocs ? (
+                  <div className="flex items-center justify-center py-12 gap-2 text-slate-400 text-xs">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading documents catalog...
+                  </div>
+                ) : linkableDocs.length > 0 ? (
                   linkableDocs.map((doc) => {
                     const isChecked = selectedDocIds.includes(doc.id);
                     return (

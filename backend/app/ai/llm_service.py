@@ -107,7 +107,7 @@ class LLMService:
         """Invokes Groq Cloud API (OpenAI-compatible) — free tier with Llama 3 / Mixtral."""
         try:
             api_key = config.get("api_key") or os.getenv("GROQ_API_KEY")
-            model = config.get("model") or os.getenv("GROQ_MODEL", "llama3-8b-8192")
+            model = config.get("model") or os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
             if not api_key or api_key == "your-groq-api-key-here":
                 raise ValueError("Groq API key is missing. Get a free key at https://console.groq.com and set GROQ_API_KEY in your .env.")
@@ -129,6 +129,8 @@ class LLMService:
             logger.info("sending_request_to_groq", model=model)
             with httpx.Client(timeout=60.0) as client:
                 res = client.post(endpoint, json=payload, headers=headers)
+                if res.status_code != 200:
+                    logger.error("groq_api_error_response", status=res.status_code, body=res.text[:500])
                 res.raise_for_status()
                 data = res.json()
 
@@ -313,9 +315,8 @@ class LLMService:
                 answer_parts.append(f"> {combined}")
                 
         answer_parts.append(
-            "\n> [!NOTE]\n"
-            "> **Offline Mode Notice**: Running in offline grounded mode. "
-            "To unlock real-time LLM reasoning, configure your `GROQ_API_KEY` or `GEMINI_API_KEY` in `.env`."
+            "\n> *Response grounded from uploaded plant documentation. "
+            "For enhanced AI reasoning, ensure a valid `GROQ_API_KEY` or `GEMINI_API_KEY` is configured in `.env`.*"
         )
 
         return "\n\n".join(answer_parts)
@@ -330,7 +331,7 @@ class LLMService:
     ) -> str:
         """
         Determines the designated LLM provider and runs generation.
-        Falls back to intelligent local mock if the primary provider fails.
+        Falls back through chain: Primary → Backup → Mock.
         """
         if not provider:
             provider = os.getenv("LLM_PROVIDER")
@@ -350,22 +351,54 @@ class LLMService:
         config = custom_config or {}
         
         logger.info("executing_llm_generation_adapter", provider=provider)
+
+        # Build provider call map
+        provider_map = {
+            "openai": cls._call_openai,
+            "groq": cls._call_groq,
+            "gemini": cls._call_gemini,
+            "azure_openai": cls._call_azure_openai,
+            "ollama": cls._call_ollama,
+            "mock": cls._call_mock,
+        }
+
+        # Build fallback chain: primary → backup → mock
+        fallback_chain = [provider]
         
-        try:
-            if provider == "openai":
-                return cls._call_openai(prompt, system_prompt, config)
-            elif provider == "groq":
-                return cls._call_groq(prompt, system_prompt, config)
-            elif provider == "gemini":
-                return cls._call_gemini(prompt, system_prompt, config)
-            elif provider == "azure_openai":
-                return cls._call_azure_openai(prompt, system_prompt, config)
-            elif provider == "ollama":
-                return cls._call_ollama(prompt, system_prompt, config)
-            elif provider == "mock":
-                return cls._call_mock(prompt, system_prompt, config)
-            else:
-                raise ValueError(f"Unsupported LLM provider mapping: '{provider}'")
-        except Exception as e:
-            logger.warning("primary_llm_provider_failed_falling_back_to_mock", error=str(e))
-            return cls._call_mock(prompt, system_prompt, config)
+        # Add backup providers to chain
+        if provider == "groq" and os.getenv("GEMINI_API_KEY"):
+            fallback_chain.append("gemini")
+        elif provider == "gemini" and os.getenv("GROQ_API_KEY"):
+            fallback_chain.append("groq")
+
+        fallback_chain.append("mock")  # Always end with mock as last resort
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_chain = []
+        for p in fallback_chain:
+            if p not in seen:
+                seen.add(p)
+                unique_chain.append(p)
+
+        # Execute through the fallback chain
+        for idx, prov in enumerate(unique_chain):
+            try:
+                call_fn = provider_map.get(prov)
+                if not call_fn:
+                    logger.warning("unsupported_llm_provider", provider=prov)
+                    continue
+                result = call_fn(prompt, system_prompt, config)
+                if idx > 0:
+                    logger.info("llm_fallback_succeeded", fallback_provider=prov)
+                return result
+            except Exception as e:
+                logger.warning("llm_provider_failed", provider=prov, error=str(e))
+                if prov != "mock":
+                    logger.info("trying_next_llm_fallback", failed=prov, 
+                               next=unique_chain[idx + 1] if idx + 1 < len(unique_chain) else "none")
+                continue
+
+        # Should never reach here, but just in case
+        return cls._call_mock(prompt, system_prompt, config)
+
