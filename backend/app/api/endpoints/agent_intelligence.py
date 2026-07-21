@@ -50,7 +50,7 @@ def get_agent_stats(
         accuracy_dict[a] = float(avg_a_conf)
         
     # Get most used agent
-    most_used = max(utilization_dict, key=utilization_dict.get) if (utilization_dict and any(v > 0 for v in utilization_dict.values())) else "Maintenance Agent"
+    most_used = max(utilization_dict, key=lambda k: utilization_dict[k]) if (utilization_dict and any(v > 0 for v in utilization_dict.values())) else "Maintenance Agent"
     
     # Collaboration trace matrix logs
     collabs = db.query(AgentCollaboration).limit(20).all()
@@ -147,7 +147,7 @@ def get_agent_collaborations(
 def get_agent_memory(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
-    agent_name: str = Query(None),
+    agent_name: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=100)
 ):
     """Lists agent learnings history, previous reasoning blocks, and grounding parameters."""

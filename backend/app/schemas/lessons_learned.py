@@ -1,6 +1,6 @@
 from typing import Optional, List
 from datetime import datetime, date
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class IncidentCreate(BaseModel):
@@ -41,6 +41,8 @@ class ReporterRef(BaseModel):
 
 
 class IncidentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     uuid: str
     equipment_id: int
@@ -58,9 +60,6 @@ class IncidentResponse(BaseModel):
     updated_at: datetime
     equipment: Optional[EquipmentRef] = None
     reporter: Optional[ReporterRef] = None
-
-    class Config:
-        from_attributes = True
 
 
 class IncidentStatsResponse(BaseModel):

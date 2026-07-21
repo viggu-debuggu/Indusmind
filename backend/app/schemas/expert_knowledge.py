@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class RefPlant(BaseModel):
@@ -61,6 +61,8 @@ class ExpertKnowledgeUpdate(BaseModel):
 
 
 class ExpertKnowledgeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     uuid: str
     title: str
@@ -89,9 +91,6 @@ class ExpertKnowledgeResponse(BaseModel):
     plant: Optional[RefPlant] = None
     department: Optional[RefDepartment] = None
     equipment: Optional[RefEquipment] = None
-
-    class Config:
-        from_attributes = True
 
 
 class KnowledgeGapArea(BaseModel):

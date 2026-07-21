@@ -1,10 +1,12 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from app.schemas.expert_knowledge import RefPlant, RefDepartment, RefEquipment
 
 
 class DecisionEvidenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     recommendation_id: int
     evidence_type: str
@@ -13,11 +15,10 @@ class DecisionEvidenceResponse(BaseModel):
     confidence: float
     summary: str
 
-    class Config:
-        from_attributes = True
-
 
 class DecisionRecommendationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     uuid: str
     equipment_id: Optional[int] = None
@@ -46,9 +47,6 @@ class DecisionRecommendationResponse(BaseModel):
     department: Optional[RefDepartment] = None
     equipment: Optional[RefEquipment] = None
     evidence: List[DecisionEvidenceResponse] = []
-
-    class Config:
-        from_attributes = True
 
 
 class DecisionRecommendationUpdate(BaseModel):

@@ -1,9 +1,11 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class AgentExecutionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     uuid: str
     chat_message_id: Optional[int] = None
@@ -15,11 +17,10 @@ class AgentExecutionResponse(BaseModel):
     duration: float
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class AgentMemoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     uuid: str
     agent_name: str
@@ -30,11 +31,10 @@ class AgentMemoryResponse(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class AgentCollaborationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     uuid: str
     session_uuid: str
@@ -45,9 +45,6 @@ class AgentCollaborationResponse(BaseModel):
     downtime_saved_estimate: float
     cost_saved_estimate: float
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class AgentStatsResponse(BaseModel):

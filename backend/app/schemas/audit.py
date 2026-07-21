@@ -1,6 +1,6 @@
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class AuditUserRef(BaseModel):
@@ -10,6 +10,8 @@ class AuditUserRef(BaseModel):
 
 
 class AuditLogResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     uuid: str
     user_id: Optional[int]
@@ -20,6 +22,3 @@ class AuditLogResponse(BaseModel):
     ip_address: Optional[str]
     created_at: datetime
     user: Optional[AuditUserRef] = None
-
-    class Config:
-        from_attributes = True
