@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, s
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.api.dependencies.auth import get_current_user
+from app.api.dependencies.auth import get_current_user, get_current_user_optional
 from app.models.user import User
 from app.models.discovery import (
     DiscoveryFinding,
@@ -30,7 +30,7 @@ def list_findings(
     priority: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Retrieves all AI discovery findings with type, priority, and text search filters."""
     query = db.query(DiscoveryFinding)
@@ -53,7 +53,7 @@ def list_findings(
 def refresh_discoveries(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Triggers an on-demand rerun of all 6 discovery engines."""
     # Run synchronously to return fresh stats immediately for manual verification
@@ -68,7 +68,7 @@ def refresh_discoveries(
 @router.get("/patterns", response_model=List[PatternRelationshipResponse])
 def get_patterns(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Lists all identified failure loop patterns, equipment clusters, and seasonal failure trends."""
     return db.query(PatternRelationship).order_by(PatternRelationship.created_at.desc()).all()
@@ -77,7 +77,7 @@ def get_patterns(
 @router.get("/gaps", response_model=List[KnowledgeGapRecordResponse])
 def get_knowledge_gaps(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Lists missing manuals, SOPs, RCAs, and computed Knowledge Completeness scores."""
     return db.query(KnowledgeGapRecord).order_by(KnowledgeGapRecord.severity == "Critical", KnowledgeGapRecord.severity == "High", KnowledgeGapRecord.created_at.desc()).all()
@@ -86,7 +86,7 @@ def get_knowledge_gaps(
 @router.get("/optimizations", response_model=List[OptimizationOpportunityResponse])
 def get_optimizations(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Lists proactive spare inventory, inspection extensions, and downtime optimization opportunities."""
     return db.query(OptimizationOpportunity).order_by(OptimizationOpportunity.priority == "High", OptimizationOpportunity.estimated_savings.desc()).all()
@@ -95,7 +95,7 @@ def get_optimizations(
 @router.get("/risks", response_model=List[RiskDiscoveryResponse])
 def get_risks(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Lists emerging operational risks, high wear indicators, and upcoming compliance warning schedules."""
     return db.query(RiskDiscovery).order_by(RiskDiscovery.priority == "Critical", RiskDiscovery.priority == "High", RiskDiscovery.created_at.desc()).all()
@@ -104,7 +104,8 @@ def get_risks(
 @router.get("/analytics", response_model=DiscoveryAnalyticsResponse)
 def get_discovery_analytics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Aggregates multi-dimensional accuracy, patterns count, risk reduction, and expected savings metrics."""
     return DiscoveryEngine.get_discovery_analytics(db)
+

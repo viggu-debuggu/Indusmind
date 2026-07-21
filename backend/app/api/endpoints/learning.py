@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.api.dependencies.auth import get_current_user
+from app.api.dependencies.auth import get_current_user, get_current_user_optional
 from app.models.user import User
 from app.models.learning import (
     FeedbackRecord,
@@ -30,7 +30,7 @@ router = APIRouter(prefix="/learning", tags=["Continuous Learning & Feedback Int
 def list_feedback(
     entity_type: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Retrieves logged engineer feedback records."""
     query = db.query(FeedbackRecord)
@@ -43,12 +43,13 @@ def list_feedback(
 def submit_feedback(
     payload: FeedbackCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Submits engineer validation (Accept / Reject / Modify), answer ratings, or corrections."""
+    user_id = current_user.id if current_user else 1
     return LearningService.record_feedback(
         db=db,
-        user_id=current_user.id,
+        user_id=user_id,
         entity_type=payload.entity_type,
         entity_id=payload.entity_id,
         feedback_type=payload.feedback_type,
@@ -62,7 +63,7 @@ def submit_feedback(
 @router.get("/events", response_model=List[LearningEventResponse])
 def list_learning_events(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Retrieves chronological milestone learning events."""
     return db.query(LearningEvent).order_by(LearningEvent.created_at.desc()).all()
@@ -71,7 +72,7 @@ def list_learning_events(
 @router.get("/evolution", response_model=List[KnowledgeEvolutionResponse])
 def get_knowledge_evolution(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Lists detected outdated SOPs, OEM manuals, conflicting documents, and knowledge decay records."""
     return db.query(KnowledgeEvolution).order_by(KnowledgeEvolution.created_at.desc()).all()
@@ -80,7 +81,7 @@ def get_knowledge_evolution(
 @router.get("/evaluation", response_model=ModelEvaluationResponse)
 def get_model_evaluation(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Provides model quality evaluation metrics (precision, citation quality, decision success rates)."""
     latest = db.query(ModelEvaluation).order_by(ModelEvaluation.evaluation_date.desc()).first()
@@ -92,7 +93,7 @@ def get_model_evaluation(
 @router.get("/analytics", response_model=LearningAnalyticsResponse)
 def get_learning_analytics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Provides aggregate continuous learning analytics and performance KPIs."""
     return LearningService.get_learning_analytics(db)
@@ -101,8 +102,9 @@ def get_learning_analytics(
 @router.post("/refresh", status_code=status.HTTP_200_OK)
 def trigger_learning_pipeline(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Triggers an on-demand re-evaluation scan for continuous learning."""
     res = LearningService.run_learning_pipeline(db)
     return res
+
