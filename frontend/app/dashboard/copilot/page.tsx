@@ -21,7 +21,9 @@ import {
   History,
   Trash2,
   Copy,
-  Check
+  Check,
+  X,
+  Menu
 } from "lucide-react";
 
 interface DocumentReference {
@@ -64,6 +66,7 @@ export default function AICopilotPage() {
   const { currentUser } = useAuth();
   
   // Chat States
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionUuid, setCurrentSessionUuid] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
@@ -418,18 +421,32 @@ export default function AICopilotPage() {
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 h-[calc(100vh-140px)]">
       
       {/* SIDEBAR HISTORY DRAWER */}
-      <div className="hidden lg:flex flex-col border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-4 space-y-4 overflow-hidden h-full">
+      <div className={`${
+        isSidebarOpen ? "flex fixed inset-0 z-50 bg-slate-950/95 p-6" : "hidden"
+      } lg:relative lg:flex lg:inset-auto lg:z-0 lg:p-4 flex-col border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 space-y-4 overflow-hidden h-full`}>
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <span className="text-xs font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
             <History className="w-4 h-4 text-indigo-500" /> Threads History
           </span>
-          <button
-            onClick={handleCreateNewChat}
-            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-950 text-indigo-500 hover:text-indigo-400 transition-all flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
-            title="Start new thread"
-          >
-            <Plus className="w-3.5 h-3.5" /> New Chat
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                handleCreateNewChat();
+                setIsSidebarOpen(false);
+              }}
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-950 text-indigo-500 hover:text-indigo-400 transition-all flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
+              title="Start new thread"
+            >
+              <Plus className="w-3.5 h-3.5" /> New Chat
+            </button>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="lg:hidden p-1.5 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white"
+              title="Close panel"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-2">
@@ -475,10 +492,19 @@ export default function AICopilotPage() {
         
         {/* HEADER CONTROLS */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2">
-              AI Copilot Workspace <Sparkles className="w-5 h-5 text-indigo-500" />
-            </h1>
+          <div className="flex items-center justify-between w-full md:w-auto">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2">
+                AI Copilot Workspace <Sparkles className="w-5 h-5 text-indigo-500" />
+              </h1>
+            </div>
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden px-3 py-1.5 border border-slate-800 hover:bg-slate-800 text-xs font-bold text-slate-300 rounded-lg transition-all flex items-center gap-1.5"
+            >
+              <Menu className="w-4 h-4 text-indigo-500" /> Threads
+            </button>
+          </div>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Query manuals, SOPs, and historical failure patterns via natural language processing.
             </p>

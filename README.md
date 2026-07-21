@@ -76,12 +76,13 @@ We support five standard corporate roles with explicit scopes enforced by backen
 
 ---
 
-## 📊 Machine Learning Telemetry Pipeline (`ml_sandbox/`)
+## 📊 Machine Learning Telemetry Classifier (`ml_sandbox/`)
 
-To predict equipment status based on sensor values, we have implemented a zero-dependency ML classifier:
-- **Data Preprocessing**: `ml_sandbox/data_preprocessing.py` normalizes raw sensor temperature and vibration entries using MinMax scaling.
-- **Model Training**: `ml_sandbox/model_training.py` trains a Nearest-Centroid Classifier to locate target centroids for status labels. It exports parameters to `ml_sandbox/models/failure_predictor.json`.
-- **Inference**: `ml_sandbox/predict.py` loads the exported JSON parameters to run local predictions.
+To support predictive health categorization, we use a custom, zero-dependency machine learning classifier which acts as a preprocessing feed into the Multi-Agent RCA / predictive-maintenance pipeline:
+- **Telemetry Anomaly Preprocessing**: `ml_sandbox/data_preprocessing.py` applies MinMax scaling to raw temperature and vibration streams.
+- **Centroid Classification Feed**: `ml_sandbox/model_training.py` trains a Nearest-Centroid Classifier to map multi-variable telemetry boundaries for statuses (`Operational`, `Maintenance`, `Degraded`). Parameters are exported to `ml_sandbox/models/failure_predictor.json`.
+- **RCA Agent Ingestion**: The Root Cause Analysis (RCA) and Maintenance agents consume these centroid predictions as local feature indicators, blending them with domain heuristic rules and Graph RAG documents to formulate recommendations.
+- **Inference Sandbox**: `ml_sandbox/predict.py` demonstrates zero-dependency classification loading directly from the exported model parameters.
 
 ---
 
