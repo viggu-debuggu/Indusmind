@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
               activeStats.most_searched_documents.map((doc, idx) => (
                 <div key={idx} className="flex items-center justify-between p-2.5 border-b border-slate-850 text-xs">
                   <span className="text-slate-300 font-medium truncate max-w-xs">{doc.name}</span>
-                  <span className="text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded">{doc.count || doc.searches || 0} Queries</span>
+                  <span className="text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded">{doc.count || 0} Queries</span>
                 </div>
               ))
             ) : (
