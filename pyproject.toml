@@ -1,0 +1,10 @@
+[tool.pyrefly]
+search-path = [
+    "backend",
+    "backend/.venv/Lib/site-packages"
+]
+
+[tool.pyright]
+executionEnvironments = [
+    { root = "backend", extraPaths = ["backend", "backend/.venv/Lib/site-packages"] }
+]

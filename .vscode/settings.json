@@ -1,10 +1,22 @@
 {
   "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+  "pyrefly.interpreter": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+  "pyrefly.pythonPath": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+  "pyrefly.searchPaths": [
+    "${workspaceFolder}/backend",
+    "${workspaceFolder}/backend/.venv/Lib/site-packages"
+  ],
+  "pyrefly.extraPaths": [
+    "${workspaceFolder}/backend",
+    "${workspaceFolder}/backend/.venv/Lib/site-packages"
+  ],
   "python.analysis.extraPaths": [
-    "${workspaceFolder}/backend"
+    "${workspaceFolder}/backend",
+    "${workspaceFolder}/backend/.venv/Lib/site-packages"
   ],
   "python.autoComplete.extraPaths": [
-    "${workspaceFolder}/backend"
+    "${workspaceFolder}/backend",
+    "${workspaceFolder}/backend/.venv/Lib/site-packages"
   ],
   "python.envFile": "${workspaceFolder}/.env"
 }
