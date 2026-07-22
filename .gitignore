@@ -29,3 +29,6 @@ Thumbs.db
 
 # Scratch debug scripts
 backend/scratch/
+
+# Presentation Deck (ignored to keep local only)
+docs/final_release/POWERPOINT_PRESENTATION_DECK.pptx

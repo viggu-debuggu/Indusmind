@@ -21,7 +21,7 @@
 
 ---
 
-![Project Banner Placeholder](architecture_diagram.png)
+![Project Banner Placeholder](indusmind_banner.png)
 
 </div>
 
@@ -154,50 +154,7 @@ flowchart TD
 
 INDUSMIND AI uses a decoupled, three-tier architecture:
 
-```mermaid
-graph TB
-    subgraph Client Layer [Next.js 15 App Client]
-        UI["Web Dashboard UI (React 19)"]
-        Mobile["Responsive Mobile & Tablet Viewport"]
-    end
-
-    subgraph API Gateway & Authentication [FastAPI Server Gateway]
-        Gateway["Uvicorn API Gateway"]
-        Trace["TracingMiddleware (Request GUID)"]
-        AuthGuard["JWT & RBAC Security Dependency"]
-        LRU["Response & Embeddings Cache Store"]
-    end
-
-    subgraph Industrial Intelligence Subsystems [Engine Layer]
-        RAG["RAG Retrieval Engine"]
-        KG["Knowledge Graph Engine (NetworkX Adjacency)"]
-        Agents["Multi-Agent Orchestrator (8 Specialized Agents)"]
-        Decision["Pareto Multi-Objective Decision Engine"]
-        Predictive["Telemetry Centroid Classifier Engine"]
-    end
-
-    subgraph Data & Storage Layer [Data & Storage]
-        DB[("PostgreSQL 16 Engine")]
-        VectorDB[("pgvector Vector Indexes")]
-        Disk[("Local Storage / AWS S3 Buckets")]
-    end
-
-    UI --> Gateway
-    Mobile --> Gateway
-    Gateway --> Trace
-    Trace --> AuthGuard
-    AuthGuard --> LRU
-    LRU --> RAG
-    LRU --> KG
-    LRU --> Agents
-    LRU --> Decision
-    LRU --> Predictive
-    
-    RAG --> VectorDB
-    KG --> DB
-    Predictive --> DB
-    Disk -.-> |SOP PDFs & Drawings| RAG
-```
+![Complete System Architecture](architecture_diagram.png)
 
 ---
 
