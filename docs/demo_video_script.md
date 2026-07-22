@@ -52,9 +52,10 @@ This document outlines the detailed narration and on-screen navigation paths for
 ### **⏱️ [5:30 - 7:00] Enterprise Production Center & Data Export**
 *   **On-Screen Action**: Navigate to `/dashboard/enterprise`. Hover over the Subsystem Health panel showing database connection pools and P95 latency (45ms). Click the *Export PDF Summary* button.
 *   **Speaker Script**:
-    > *"Lastly, we visit the Enterprise Production Center. Here, we track system telemetry, ensuring all 10 engine subsystems are active and database queries respond within our strict 45ms P95 SLA. 
+    > *"Lastly, we visit the Enterprise Production Center. Here, we track system telemetry across our Docker-containerized microservices, ensuring all 10 engine subsystems respond within our strict 45ms P95 SLA. 
     > 
-    > With one click, the platform generates and downloads a complete compliance audit evidence package or PDF report, ready for ISO or safety inspectors. Thank you for your time."*
+    > Using Docker Compose allows us to spin up the Next.js, FastAPI, and Postgres database stack instantly with a single command. With one click, the platform generates a complete compliance audit evidence package or PDF report. Thank you for your time."*
+
 
 ---
 
