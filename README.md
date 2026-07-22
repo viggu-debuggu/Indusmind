@@ -154,7 +154,81 @@ flowchart TD
 
 INDUSMIND AI uses a decoupled, three-tier architecture:
 
-![Complete System Architecture](architecture_diagram.png)
+```mermaid
+flowchart TB
+    %% Nodes Styling
+    classDef client fill:#0f172a,stroke:#38bdf8,stroke-width:1px,color:#f8fafc;
+    classDef gateway fill:#1e1b4b,stroke:#818cf8,stroke-width:1px,color:#e0e7ff;
+    classDef engine fill:#3b0764,stroke:#c084fc,stroke-width:1px,color:#f3e8ff;
+    classDef storage fill:#064e3b,stroke:#34d399,stroke-width:1px,color:#ecfdf5;
+
+    subgraph Client [Client Portal - Next.js 15 & React 19]
+        Panels[Web Dashboard Panels]:::client
+        Axios[Axios Interceptors - JWT Rotation]:::client
+        ExecDash[Executive Dashboard]:::client
+        CopilotUI[AI Copilot & Graph Visualization]:::client
+        TwinUI[Twin & Telemetry Dashboard]:::client
+        DocUI[Workspace & Doc Center]:::client
+    end
+
+    subgraph Gateway [Backend Gateway - FastAPI]
+        API[FastAPI Application]:::gateway
+        Middle[Middleware: CORS, Tracing, Structlog]:::gateway
+        RBAC[RoleChecker Security Guard]:::gateway
+        
+        AdminAPI[System & Role Admin Endpoints]:::gateway
+        TwinAPI[Digital Twin & Telemetry Endpoints]:::gateway
+        CopilotAPI[Copilot & Graph RAG Endpoints]:::gateway
+        DocAPI[Document Management Endpoints]:::gateway
+        AuthAPI[Auth & Profile Endpoints]:::gateway
+    end
+
+    subgraph AI_Engine [AI & Machine Learning Engine]
+        Classifier[Nearest Centroid Telemetry Classifier]:::engine
+        Orchestrator[RAG & LLM Orchestrator - Prompt & Citation Tracker]:::engine
+        
+        subgraph Agents [Multi-Agent Collaboration]
+            RCAAgent[Root Cause Analysis Agent]:::engine
+            MaintAgent[Maintenance Agent]:::engine
+            DecisionAgent[Decision Recommendation Agent]:::engine
+        end
+        
+        DocPipeline[Document Processing Pipeline - OCR, Chunking, Extraction]:::engine
+    end
+
+    subgraph Storage [Storage & Database Layer]
+        Postgres[(PostgreSQL 16 Relational Engine)]:::storage
+        VectorDB[(pgvector Semantic Store)]:::storage
+        ObjectStore[(Multi-Cloud Object Storage - Local, S3, Azure, MinIO)]:::storage
+    end
+
+    %% Client Layer interactions
+    Panels & ExecDash & CopilotUI & TwinUI & DocUI -->|HTTP Requests| API
+    Axios <-->|Token Refresh & Rotation| AuthAPI
+
+    %% Gateway internal flow
+    API --> Middle
+    Middle --> RBAC
+    RBAC --> AdminAPI & TwinAPI & CopilotAPI & DocAPI & AuthAPI
+
+    %% Gateway to Engine connections
+    TwinAPI -->|Telemetry Streams| Classifier
+    CopilotAPI -->|Semantic Query| Orchestrator
+    DocAPI -->|Upload PDF, DWG, Logs| DocPipeline
+
+    %% Engine internal connections
+    Classifier -->|Anomalies| Agents
+    Orchestrator -->|Grounding Context| Agents
+    
+    %% Engine to Storage connections
+    Agents -->|Read/Write Investigations & Logic| Postgres
+    DocPipeline -->|Write Text & Embeddings| VectorDB
+    DocPipeline -->|Store Files| ObjectStore
+
+    %% Gateway to Storage connections
+    AdminAPI & TwinAPI -->|Read/Write ORM & Asset State| Postgres
+    CopilotAPI & DocAPI & AuthAPI -->|Read/Write ORM Metadata| Postgres
+```
 
 ---
 
