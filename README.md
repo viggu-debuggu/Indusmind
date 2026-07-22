@@ -23,6 +23,9 @@
 
 ![Project Banner Placeholder](indusmind_banner.png)
 
+### 🎥 Live Platform Demonstration
+[![Platform Walkthrough Video](https://img.shields.io/badge/Vimeo-Demonstration%20Video-blue?style=for-the-badge&logo=vimeo&logoColor=white)](https://vimeo.com/placeholder-indusmind-demo)
+
 </div>
 
 ---
