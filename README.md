@@ -21,7 +21,7 @@
 
 ---
 
-![Project Banner Placeholder](docs/system_architecture_diagram.png)
+![Project Banner Placeholder](architecture_diagram.png)
 
 </div>
 
