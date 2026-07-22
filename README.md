@@ -920,5 +920,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 27. Contact
 
 *   **GitHub**: [https://github.com/indusmind-ai](https://github.com/indusmind-ai)
-*   **LinkedIn**: [https://linkedin.com/company/indusmind-ai](https://linkedin.com/company/indusmind-ai)
-*   **Email**: support@indusmind.ai
+*   **LinkedIn**: [https://www.linkedin.com/in/pagadala-charan-karthik-67a614354/](https://www.linkedin.com/in/pagadala-charan-karthik-67a614354/)
+*   **Email**: charankarthik366@gmail.com
